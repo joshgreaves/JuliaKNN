@@ -1,7 +1,6 @@
 module DataPrep
 
-import Base.normalize!
-export partition, splitdata, shuffledata, getbatch, remove_unknowns, normalize!
+export partition, splitdata, shuffledata, getbatch, remove_unknowns, normalizedata!
 
 function remove_unknowns(x::Matrix{<:Any}, y::Matrix{<:Any}; unk::Any=:?)
     x = copy(x)
@@ -114,38 +113,27 @@ function smoothline(data::Array{<:Number, 1}; window=10)
     return result
 end
 
-function normalize!(data::Vector{<:Number}, actual_lower::Number,
-                    actual_upper::Number, target_lower::Number=0,
-                    target_upper::Number=1)
+function normalizedata(data::Vector{<:Number}, actual_lower::Number,
+                       actual_upper::Number, target_lower::Number=0,
+                       target_upper::Number=1)
     actual_span = actual_upper - actual_lower
     target_span = target_upper - target_lower
 
-    data .+= actual_lower
+    data .-= actual_lower
     data .*= (target_span / actual_span)
     data .+= target_lower
+    return data
 end
 
-function normalize!(data::Matrix{<:Number}, actual_lower::Number,
-                   actual_upper::Number, target_lower::Number=0,
-                   target_upper::Number=1)
-    for i in 1:size(data)[2]
-        normalize!(data[:, i], actual_lower, actual_upper, target_lower,
-                   target_upper)
-   end
-end
-
-function normalize!(data::Matrix{<:Number}, lower::Number=0, upper::Number=1)
-    lb = minimum(data)
-    ub = maximum(data)
-    normalize!(data, lb, ub, lower, upper)
-end
-
-function normalize!(data1::Matrix{<:Number}, data2::Matrix{<:Number},
+function normalizedata!(data1::Matrix{<:Number}, data2::Matrix{<:Number},
                    lower::Number=0, upper::Number=1)
-    lb = min(minimum(data1), minimum(data2))
-    ub = max(maximum(data1), maximum(data2))
-    normalize!(data1, lb, ub, lower, upper)
-    normalize!(data2, lb, ub, lower, upper)
+    # Needs to be normalized by column
+    for i in 1:size(data1)[2]
+        lb = min(minimum(data1[:, i]), minimum(data2[:, i]))
+        ub = max(maximum(data1[:, i]), maximum(data2[:, i]))
+        data1[:, i] = normalizedata(data1[:, i], lb, ub, lower, upper)
+        data2[:, i] = normalizedata(data2[:, i], lb, ub, lower, upper)
+    end
 end
 
 end
