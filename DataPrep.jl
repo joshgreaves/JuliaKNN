@@ -9,32 +9,38 @@ function remove_unknowns(x::Matrix{<:Any}, y::Matrix{<:Any}; unk::Any=:?)
     num_data = size(x)[1]
     num_features = size(x)[2]
 
-    bests = Dict{Symbol, Vector{Symbol}}()
+    bests = Dict{Symbol, Vector{Any}}()
     # Collect the mean for each class
     for class in classes
         indices = y[:, 1] .== class
         class_xs = x[indices, :]
 
-        best = Vector{Symbol}(num_features)
+        best = Vector{Any}(num_features)
         for i in 1:num_features
-            counts = Dict{Symbol, Int64}()
-            features = unique(class_xs[:, i])
-            for feature in features
-                counts[feature] = sum(class_xs[:, i] .== feature)
-            end
-
-            best_s = :none
-            best_n = 0
-            for key in keys(counts)
-                if counts[key] > best_n && key != unk
-                    best_s = key
-                    best_n = counts[key]
+            if typeof(class_xs[1, i]) == Symbol
+                counts = Dict{Symbol, Int64}()
+                features = unique(class_xs[:, i])
+                for feature in features
+                    counts[feature] = sum(class_xs[:, i] .== feature)
                 end
-            end
 
-            best[i] = best_s
-            bests[class] = best
+                best_s = :none
+                best_n = 0
+                for key in keys(counts)
+                    if counts[key] > best_n && key != unk
+                        best_s = key
+                        best_n = counts[key]
+                    end
+                end
+
+                best[i] = best_s
+            else
+                val_indices = issubtype.(typeof.(class_xs[:, i]), Number)
+                mean_val = mean(class_xs[val_indices, i])
+                best[i] = mean_val
+            end
         end
+        bests[class] = best
     end
 
     # Now we have the bests, loop through the data altering it
@@ -46,6 +52,12 @@ function remove_unknowns(x::Matrix{<:Any}, y::Matrix{<:Any}; unk::Any=:?)
         end
     end
 
+    return x
+end
+
+function remove_unknowns(x::Vector{<:Any}, vals::Vector{<:Any})
+    mean_val = mean(vals)
+    x[typeof.(x) .== Symbol] = mean_val
     return x
 end
 
