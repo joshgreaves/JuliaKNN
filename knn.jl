@@ -4,7 +4,7 @@ include("DataPrep.jl")
 using .DataPrep.normalizedata
 
 export euclidean_distance, manhattan_distance
-export Knn, classify
+export Knn, classify, regression
 
 #==== Distance Functions ====#
 function euclidean_distance(point::Matrix{<:Number}, data::Matrix{<:Number})
@@ -87,7 +87,43 @@ end
 function regression(model::Knn, x::Matrix{<:Any}, k::Integer;
                     distance_fn::Function=euclidean_distance,
                     weight_fn::Function=one)
+      # The results will be added here
+      num_data = size(x)[1]
+      num_features = size(x)[2]
+      results = Matrix{<:Any}(num_data, 1)
 
+      # If the knn model is normalized, normalize the data
+      if model.normalized
+          x = deepcopy(x)
+          for i in 1:num_features
+              x[:, i] = normalizedata(x[:, i], model.min_x[i], model.max_x[i])
+          end
+      end
+
+      for i in 1:num_data
+          # Calculate the distances and get the k closes indices
+          distance = distance_fn(x[i:i, :], model.x)
+          indices = sortperm(reshape(distance, :))[1:k]
+
+          # Get the classes and distances of the k closes
+          y = model.y[indices]
+          distance = distance[indices]
+
+          # Initialize the "votes" for each class
+          total_val = 0
+          total_weight = 0
+
+          # Loop through each data point and update the votes
+          for j in 1:k
+              distance_weight = weight_fn(distance[j])
+              total_val += y[j] / distance_weight
+              total_weight += 1 / weight_fn(distance[j])
+          end
+
+          results[i, 1] = total_val / total_weight
+      end
+
+      return results
 end
 
 function predict(model::Knn, x::Matrix{<:Any})

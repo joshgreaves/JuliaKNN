@@ -23,17 +23,18 @@ accuracy = Vector{Float64}(8)
 for i = 1:8
     println(i)
     correct  = classify(model, test_x, (i*2) - 1) .== test_y[:, 1]
+    # correct  = classify(model, test_x, (i*2) - 1, weight_fn=f(x)=x^2) .== test_y[:, 1]
     accuracy[i] = mean(correct)
 end
 
 function plotacc()
     pyplot()
     plot(accuracy, xticks=(1:8, 1:2:15), label="Test Accuracy")
-    title!("Accuracy on Magic Telescope Dataset with Varying k")
+    title!("Accuracy on Magic Telescope Dataset with Squared Distance Weighting")
     xaxis!("k")
     yaxis!("Accuracy")
     ylims!(0.8, 0.9)
-    # savefig("img/MagicTelescopeK.png")
+    # savefig("img/MagicTelescopeWithWeighting.png")
 end
 
 # println("Accuracy: ", sum(results), "/", length(results), " = ", mean(results))
@@ -50,3 +51,7 @@ end
 # EXPERIMENT 2
 # Normalized data, with varying K, no distance weighting, euclidean distance
 # img/MagicTelescopeK.png
+#
+# EXPERIMENT 3
+# Normalized data, with varying K, with squared distance weighting, euclidean distance
+# img/MagicTelescopeWithWeighting.png
